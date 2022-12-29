@@ -1,7 +1,8 @@
 //DECLARATIONS: auth error, model object ---------------
 const { AuthenticationError } = require('apollo-server-express');
-const { User, Book } = require('../models');
+const { User } = require('../models');
 const { signToken } = require('../utils/auth');
+
 
 //RESOLVERS =========================
 const resolvers = {
@@ -42,11 +43,23 @@ const resolvers = {
             const token = signToken(user);
             return { token, user };
         },
-        saveBook: async (parent, { input }, context) => {
+        saveBook: async (parent, input, context) => {
             if (context.user) {
                 const updatedUser = await User.findOneAndUpdate(
                     {_id: context.user._id },
                     { $push: { savedBooks: input } },
+                    { new: true, runValidators: true }
+                );
+                return updatedUser;
+            }
+
+            throw new AuthenticationError('You need to be logged in');
+        },
+        removeBook: async(_,  { bookIdToRemove }, context) => {
+            if (context.user) {
+                const updatedUser = await User.findOneAndUpdate(
+                    {_id: context.user._id},
+                    { $pull: { savedBooks: { bookId: bookIdToRemove } } },
                     { new: true, runValidators: true }
                 );
                 return updatedUser;
